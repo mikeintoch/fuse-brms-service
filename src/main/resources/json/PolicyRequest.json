@@ -1,0 +1,19 @@
+{
+      "com.redhat.insurance.Car":
+      {
+        "marca": "BMW",
+        "modelo": "2017"
+      },
+      "com.redhat.insurance.Driver":
+      {
+        "edad": 20,
+        "codigoPostal": "02710",
+        "nombre": "Miguel Delgadillo",
+        "correo": "mdelgadillo@mail.com"
+      },
+      "com.redhat.insurance.Policy":
+      {
+        "precio": 0,
+        "tipo": "Completa"
+      }
+}

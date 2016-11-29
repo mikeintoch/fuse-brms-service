@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- JBoss, Home of Professional Open Source Copyright 2014, Red Hat, Inc. 
+	and/or its affiliates, and individual contributors by the @authors tag. See 
+	the copyright.txt in the distribution for a full listing of individual contributors. 
+	Licensed under the Apache License, Version 2.0 (the "License"); you may not 
+	use this file except in compliance with the License. You may obtain a copy 
+	of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+<!-- Configures the Camel Context -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <bean class="com.redhat.insuranceagency.BRMSRequestProcessor" id="brmsReqProc"/>
+    <bean class="com.redhat.insuranceagency.BRMSResponseProcessor" id="brmsRespProc"/>
+    <camelContext id="_camelContext1"
+        xmlns="http://camel.apache.org/schema/spring" xmlns:order="http://fabric8.com/examples/order/v7">
+        <propertyPlaceholder id="urls" location="props.properties"/>
+        <restConfiguration component="netty4-http" enableCORS="true"
+            host="0.0.0.0" port="9085">
+            <corsHeaders key="Access-Control-Allow-Origin" value="*"/>
+            <corsHeaders key="Access-Control-Allow-Methods" value="GET, POST, PUT, DELETE, OPTIONS, HEAD"/>
+            <corsHeaders key="Access-Control-Allow-Headers" value="origin, content-type, accept, authorization"/>
+            <corsHeaders key="Access-Control-Allow-Credentials" value="true"/>
+        </restConfiguration>
+        <rest consumes="application/json" path="/rest">
+            <post uri="/book">
+                <to uri="direct:book"/>
+            </post>
+        </rest>
+        <route id="bookingsRoute">
+            <from id="_from1" uri="direct:book"/>
+            <unmarshal id="_unmarshal1">
+                <json library="Gson" prettyPrint="true" unmarshalTypeName="com.redhat.insurance.messages.PolicyMessage"/>
+            </unmarshal>
+            <to id="_to1" uri="direct:brms"/>
+        </route>
+        <route id="brmsRoute">
+            <from id="_from2" uri="direct:brms"/>
+            <setProperty id="_setProperty1" propertyName="PolicyMessage">
+                <simple>${body}</simple>
+            </setProperty>
+            <process id="_process1" ref="brmsReqProc"/>
+            <marshal id="_marshal4">
+                <json library="Gson" prettyPrint="true"/>
+            </marshal>
+            <setHeader headerName="X-KIE-ContentType" id="_setHeader4">
+                <constant>JSON</constant>
+            </setHeader>
+            <setHeader headerName="Content-Type" id="_setHeader4">
+                <constant>application/json</constant>
+            </setHeader>
+            <log id="_log2" message="Mensaje enviado a BRMS => ${body}"/>
+            <to id="_to8" uri="http4://{{BRMSURL}}?exchangePattern=InOut&amp;bridgeEndpoint=true&amp;authUsername={{BRMSUser}}&amp;authPassword={{BRMSPassword}}"/>
+            <process id="_process2" ref="brmsRespProc"/>
+            <marshal id="_marshal5">
+                <json library="Gson" prettyPrint="true"/>
+            </marshal>
+        </route>
+    </camelContext>
+</beans>
